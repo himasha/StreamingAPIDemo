@@ -1,35 +1,75 @@
-@App:name("PMIQuoteProviderApp")
+@App:name('PMIQuoteProviderApp')
+@App:description('Provide PMI quotes for validated loan applications through the approved insurance vendor')
 
-@App:description("Provide PMI quotes for validated loan applications through the approved insurance vendor")
+@App:asyncAPI("""asyncapi: 2.0.0
+info:
+  title: InsuranceQuotesApp
+  version: 1.0.0
+  description: This exposes an API from WSO2 SI
+servers:
+  production:
+    url: 'localhost:8025'
+    protocol: ws
+    security: []
+channels:
+  /insurance:
+    subscribe:
+      message:
+        $ref: '#/components/messages/PMIQuoteListStreamPayload'
+components:
+  messages:
+    PMIQuoteListStreamPayload:
+      payload:
+        type: object
+        properties:
+          loanAppID:
+            $ref: '#/components/schemas/loanAppID'
+          customerID:
+            $ref: '#/components/schemas/customerID'
+          insuranceRate:
+            $ref: '#/components/schemas/insuranceRate'
+          monthlyPMI:
+            $ref: '#/components/schemas/monthlyPMI'
+  schemas:
+    loanAppID:
+      type: string
+    customerID:
+      type: string
+    insuranceRate:
+      type: number
+    monthlyPMI:
+      type: number
+  securitySchemes: {}
+""")
 
-@source(type='kafka',
-        topic.list='pmi_loan_topic',
-        threading.option='single.thread',
-        group.id="group",
-        bootstrap.servers='localhost:9092',
-        @map(type='json'))
+@sink(type='http-call',publisher.url = "http://localhost:9098/insurance/rate",method = "POST",sink.id = "insurance",
+	@map(type='json'))
+define stream InsuranceRateRequestStream (loanApplicationID string,customerID string);
+
+
+ @sink(type='websocket-server',host = "localhost",port = "8025",
+	@map(type='xml'))
+define stream PMIQuoteListStream (loanAppID string,customerID string,insuranceRate float,monthlyPMI float);
+
+
+@source(type='kafka',topic.list = "pmi_loan_topic",threading.option = "single.thread",group.id = "group",bootstrap.servers = "localhost:9092",
+	@map(type='json'))
 define stream FilteredLoanStream (loanAppID string,customerID string,total_loan_amount float);
 
-@sink(type='http-call', publisher.url='http://localhost:9098/insurance/rate',
-      method='POST', sink.id='insurance', @map(type='json'))
-define stream InsuranceRateRequestStream(loanApplicationID  string, customerID string);
 
-@source(type='http-call-response', sink.id='insurance',
-        http.status.code='200',
-        @map(type='json'))
+@source(type='http-call-response',sink.id = "insurance",http.status.code = "200",
+	@map(type='json'))
 define stream InsuranceRateResponseStream (loanApplicationID string,insuranceRate float);
 
- @sink(type='websocket-server', host='localhost',port='8025',
-    @map(type='xml'))
-define stream PMIQuoteListStream (loanAppID string,customerID string, insuranceRate float,monthlyPMI float);
 
-from FilteredLoanStream
-select loanAppID as loanApplicationID , customerID
-insert into InsuranceRateRequestStream;
+@info(name='query1')
+from FilteredLoanStream 
+select loanAppID as loanApplicationID,customerID 
+insert  into InsuranceRateRequestStream;
 
 
-from FilteredLoanStream#window.time(10 min) as f
-join InsuranceRateResponseStream#window.time(10 min) as i
-on f.loanAppID == i.loanApplicationID
-select f.loanAppID, f.customerID, i.insuranceRate, f.total_loan_amount * i.insuranceRate as monthlyPMI
-insert into PMIQuoteListStream;
+@info(name='query2')
+from FilteredLoanStream#window.time(10 min) as f 
+join InsuranceRateResponseStream#window.time(10 min) as i on f.loanAppID == i.loanApplicationID 
+select f.loanAppID as loanAppID,f.customerID as customerID,i.insuranceRate as insuranceRate,f.total_loan_amount * i.insuranceRate as monthlyPMI 
+insert  into PMIQuoteListStream;
