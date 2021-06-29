@@ -1,0 +1,24 @@
+@App:name("HomeLoanRequestApp")
+
+@App:description("Determine the housing loan requests  that would require private mortgage insurance")
+
+@source(type='kafka',
+        topic.list='loan_request_topic',
+       threading.option='single.thread',
+        group.id="group",
+        bootstrap.servers='localhost:9092',
+       @map(type='json'))  
+define stream LoanRequestStream (loanAppID string,customerID string, houseValue float, downPayment float);
+
+@sink(type='log')
+@sink(type='kafka',
+      topic='pmi_loan_topic',
+      bootstrap.servers='localhost:9092',
+      @map(type='json'))
+define stream PMILoanRequestStream (loanAppID string,customerID string,total_loan_amount float);
+
+
+@info(name='query1')
+from LoanRequestStream[downPayment/houseValue *100 < 20]
+select loanAppID, customerID,  houseValue - downPayment as total_loan_amount
+insert into PMILoanRequestStream;

@@ -1,0 +1,35 @@
+@App:name("PMIQuoteProviderApp")
+
+@App:description("Provide PMI quotes for validated loan applications through the approved insurance vendor")
+
+@source(type='kafka',
+        topic.list='pmi_loan_topic',
+        threading.option='single.thread',
+        group.id="group",
+        bootstrap.servers='localhost:9092',
+        @map(type='json'))
+define stream FilteredLoanStream (loanAppID string,customerID string,total_loan_amount float);
+
+@sink(type='http-call', publisher.url='http://localhost:9098/insurance/rate',
+      method='POST', sink.id='insurance', @map(type='json'))
+define stream InsuranceRateRequestStream(loanApplicationID  string, customerID string);
+
+@source(type='http-call-response', sink.id='insurance',
+        http.status.code='200',
+        @map(type='json'))
+define stream InsuranceRateResponseStream (loanApplicationID string,insuranceRate float);
+
+ @sink(type='websocket-server', host='localhost',port='8025',
+    @map(type='xml'))
+define stream PMIQuoteListStream (loanAppID string,customerID string, insuranceRate float,monthlyPMI float);
+
+from FilteredLoanStream
+select loanAppID as loanApplicationID , customerID
+insert into InsuranceRateRequestStream;
+
+
+from FilteredLoanStream#window.time(10 min) as f
+join InsuranceRateResponseStream#window.time(10 min) as i
+on f.loanAppID == i.loanApplicationID
+select f.loanAppID, f.customerID, i.insuranceRate, f.total_loan_amount * i.insuranceRate as monthlyPMI
+insert into PMIQuoteListStream;
