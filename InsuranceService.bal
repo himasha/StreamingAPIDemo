@@ -1,11 +1,4 @@
 import ballerina/http;
-//import ballerina/log;
-//import ballerina/lang.value as value;
-
-// type Customer record {
-//     string loanApplicationID;
-//     string customerID;
-// };
 
 service /insurance on new http:Listener(9098) {
 
