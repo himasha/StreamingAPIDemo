@@ -52,7 +52,7 @@ Access the Streaming Integration Tooling via the http://<HOST_NAME>:<TOOLING_POR
 
     bin/kafka-console-producer.sh --broker-list localhost:9092 --topic loan_request_topic
     
-5. In the same terminal, publish events similar to below format. (Please note that PMI quotes will be provided only to loan requests with less than 20% down payment from the house value )
+5. In the same terminal, publish events similar to below format. (Please note that PMI quotes will be provided only to loan requests with less than 20% down payment from the house value ). Make sure the backend service (InsuranceService.bal) has the necessary values as credit scores/insurance rates are hardcoded.
 
     {"event":{ "loanAppID":"1111", "customerID":"81454", "houseValue":10000, "downPayment":50}}
     
