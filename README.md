@@ -7,7 +7,7 @@ In the following use-case, a typical bank that has partnered with an insurance p
 1. Download WSO2 API Manager 4.0(Zip archive) from https://wso2.com/api-manager/#
 2. Download WSO2 Streaming Integrator 4.0 listed under 'Other components' of https://wso2.com/api-manager/#
 3. Dowloand the Streaming Integrator tooling from https://wso2.com/integration/streaming-integrator/
-4. Follow the prerequisites of https://apim.docs.wso2.com/en/latest/use-cases/streaming-tutorials/expose-a-kafka-topic-as-a-managed-websocket-api/#prerequisites to download and install Kafka, setting port offsets in API Manager and finally starting up all the servers.
+4. Follow the prerequisites of https://apim.docs.wso2.com/en/latest/use-cases/streaming-tutorials/expose-a-kafka-topic-as-a-managed-websocket-api/#prerequisites to download and install Kafka, setting port offsets in API Manager, enabling service catalog in Streaming Integrator and finally starting up all the servers.
 5. Extract the Streaming Integrator Tooling pack to a preferred location. Hereafter, the extracted location is referred to as <SI_TOOLING_HOME>.
 
    Navigate to the <SI_TOOLING_HOME>/bin directory and issue the appropriate command depending on your operating system to start the Streaming Integration tooling.
